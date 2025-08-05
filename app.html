@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orange Pi Access Manager</title>
+    <!-- EmailJS SDK - Alternative CDN -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ffa500);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .login-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .user-selector {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .user-card {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 1.1em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 8px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .user-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(79, 172, 254, 0.4);
+        }
+
+        .user-card.admin {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+            box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3);
+        }
+
+        .user-card.admin:hover {
+            box-shadow: 0 15px 35px rgba(255, 107, 107, 0.4);
+        }
+
+        .dashboard {
+            display: none;
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        .status-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 3px solid transparent;
+            background-clip: padding-box;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .status-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.online {
+            background: #4ade80;
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+        }
+
+        .status-dot.offline {
+            background: #ef4444;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .control-panel {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .control-btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-btn.start {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+            color: white;
+        }
+
+        .control-btn.stop {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .request-form {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #374151;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 15px rgba(79, 172, 254, 0.2);
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+        }
+
+        .requests-list {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .request-item {
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 5px solid #4facfe;
+        }
+
+        .request-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .approve-btn {
+            background: #4ade80;
+            color: white;
+        }
+
+        .reject-btn {
+            background: #ef4444;
+            color: white;
+        }
+
+        .back-btn {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, #4ade80, #22c55e);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+            
+            .user-selector {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍊 Orange Pi Manager</h1>
+            <p>Control and monitor your Orange Pi access</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Login Section -->
+            <div id="loginSection" class="login-section">
+                <h2 style="margin-bottom: 30px; color: #374151;">Select User</h2>
+                <div class="user-selector">
+                    <button class="user-card admin" onclick="login('admin')">Iheb (Admin)</button>
+                    <button class="user-card" onclick="login('jinen')">Jinen</button>
+                    <button class="user-card" onclick="login('besma')">Besma</button>
+                </div>
+            </div>
+
+            <!-- Admin Dashboard -->
+            <div id="adminDashboard" class="dashboard">
+                <button class="back-btn" onclick="logout()">← Back to Login</button>
+                
+                <div class="status-panel">
+                    <h2 style="text-align: center; margin-bottom: 20px; color: #374151;">Orange Pi Status</h2>
+                    <div class="status-indicator">
+                        <span class="status-dot" id="statusDot"></span>
+                        <span id="statusText">Loading...</span>
+                    </div>
+                    <div class="control-panel">
+                        <button class="control-btn start" onclick="togglePiStatus(true)">Start Orange Pi</button>
+                        <button class="control-btn stop" onclick="togglePiStatus(false)">Stop Orange Pi</button>
+                    </div>
+                </div>
+
+                <div class="requests-list">
+                    <h2 style="margin-bottom: 20px; color: #374151;">Access Requests</h2>
+                    <div id="requestsList">
+                        <!-- Requests will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Dashboard -->
+            <div id="userDashboard" class="dashboard">
+                <button class="back-btn" onclick="logout()">← Back to Login</button>
+                
+                <div class="status-panel">
+                    <h2 style="text-align: center; margin-bottom: 20px; color: #374151;">Orange Pi Status</h2>
+                    <div class="status-indicator">
+                        <span class="status-dot" id="userStatusDot"></span>
+                        <span id="userStatusText">Loading...</span>
+                    </div>
+                </div>
+
+                <div class="request-form">
+                    <h2 style="margin-bottom: 20px; color: #374151;">Request Access</h2>
+                    <form id="accessRequestForm">
+                        <div class="form-group">
+                            <label for="startTime">Start Time:</label>
+                            <input type="datetime-local" id="startTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="endTime">End Time:</label>
+                            <input type="datetime-local" id="endTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="purpose">Purpose:</label>
+                            <textarea id="purpose" rows="3" placeholder="Describe what you need the Orange Pi for..." required></textarea>
+                        </div>
+                        <button type="submit" class="submit-btn">Send Request</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application state
+        let currentUser = null;
+        let piStatus = false;
+        let accessRequests = [];
+        const adminEmail = 'iheb.kesraoui@ubotica.com';
+
+        // Initialize EmailJS
+        (function() {
+            // This will be handled by the load event listener
+        })();
+
+        // Email service using EmailJS
+        function sendEmail(templateParams) {
+            const emailjsService = window.emailjsReady;
+            
+            if (!emailjsService) {
+                console.error('EmailJS is not available');
+                showNotification('Email service temporarily unavailable. Request saved locally.', 'error');
+                return;
+            }
+            
+            console.log('📧 Sending email with params:', templateParams);
+            
+            emailjsService.send('service_dzxifqr', 'template_9hmmdus', templateParams)
+                .then(function(response) {
+                    console.log('✅ Email sent successfully!', response.status, response.text);
+                    showNotification('Email notification sent!', 'success');
+                }, function(error) {
+                    console.log('❌ Failed to send email:', error);
+                    showNotification('Failed to send email notification', 'error');
+                });
+        }
+
+        // Load initial data
+        window.addEventListener('load', function() {
+            loadData();
+            updateStatus();
+            setInterval(updateStatus, 30000); // Update every 30 seconds
+            
+            // Initialize EmailJS after page loads - multiple attempts with different methods
+            setTimeout(() => {
+                initializeEmailJS();
+            }, 1000);
+        });
+
+        function initializeEmailJS() {
+            // Try different ways to access EmailJS
+            let emailjsService = null;
+            
+            if (typeof emailjs !== 'undefined') {
+                emailjsService = emailjs;
+            } else if (typeof window.emailjs !== 'undefined') {
+                emailjsService = window.emailjs;
+            } else if (typeof EmailJS !== 'undefined') {
+                emailjsService = EmailJS;
+            }
+            
+            if (emailjsService) {
+                try {
+                    emailjsService.init("tFja3DHZRAQ4JRAJa");
+                    window.emailjsReady = emailjsService;
+                    console.log('✅ EmailJS initialized successfully');
+                } catch (error) {
+                    console.error('❌ EmailJS initialization error:', error);
+                }
+            } else {
+                console.log('❌ EmailJS not found, trying manual script load...');
+                loadEmailJSManually();
+            }
+        }
+
+        function loadEmailJSManually() {
+            // Fallback: Load EmailJS manually
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/emailjs-com@3/dist/email.min.js';
+            script.onload = function() {
+                setTimeout(() => {
+                    if (typeof emailjs !== 'undefined') {
+                        emailjs.init("tFja3DHZRAQ4JRAJa");
+                        window.emailjsReady = emailjs;
+                        console.log('✅ EmailJS loaded and initialized manually');
+                    }
+                }, 500);
+            };
+            script.onerror = function() {
+                console.error('❌ Failed to load EmailJS manually');
+                // Provide fallback notification
+                window.emailjsReady = null;
+            };
+            document.head.appendChild(script);
+        }
+
+        function loadData() {
+            // Load from memory (in a real app, this would be from a database)
+            const savedRequests = sessionStorage.getItem('accessRequests');
+            if (savedRequests) {
+                accessRequests = JSON.parse(savedRequests);
+            }
+            
+            const savedStatus = sessionStorage.getItem('piStatus');
+            if (savedStatus !== null) {
+                piStatus = JSON.parse(savedStatus);
+            }
+        }
+
+        function saveData() {
+            sessionStorage.setItem('accessRequests', JSON.stringify(accessRequests));
+            sessionStorage.setItem('piStatus', JSON.stringify(piStatus));
+        }
+
+        function login(user) {
+            currentUser = user;
+            document.getElementById('loginSection').style.display = 'none';
+            
+            if (user === 'admin') {
+                document.getElementById('adminDashboard').classList.add('active');
+                loadRequests();
+            } else {
+                document.getElementById('userDashboard').classList.add('active');
+            }
+            
+            updateStatus();
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('adminDashboard').classList.remove('active');
+            document.getElementById('userDashboard').classList.remove('active');
+        }
+
+        function updateStatus() {
+            const isOnline = piStatus;
+            const statusText = isOnline ? 'Orange Pi is Online' : 'Orange Pi is Offline';
+            const dotClass = isOnline ? 'online' : 'offline';
+            
+            // Update admin status
+            const adminStatusDot = document.getElementById('statusDot');
+            const adminStatusText = document.getElementById('statusText');
+            if (adminStatusDot) {
+                adminStatusDot.className = `status-dot ${dotClass}`;
+                adminStatusText.textContent = statusText;
+            }
+            
+            // Update user status
+            const userStatusDot = document.getElementById('userStatusDot');
+            const userStatusText = document.getElementById('userStatusText');
+            if (userStatusDot) {
+                userStatusDot.className = `status-dot ${dotClass}`;
+                userStatusText.textContent = statusText;
+            }
+        }
+
+        function togglePiStatus(newStatus) {
+            piStatus = newStatus;
+            updateStatus();
+            saveData();
+            
+            const message = newStatus ? 'Orange Pi started successfully!' : 'Orange Pi stopped successfully!';
+            showNotification(message, 'success');
+            
+            // Simulate sending alert email
+            if (!newStatus) {
+                console.log('Alert: Orange Pi has been turned off');
+                // In a real implementation, this would trigger an email alert
+            }
+        }
+
+        function loadRequests() {
+            const requestsList = document.getElementById('requestsList');
+            if (accessRequests.length === 0) {
+                requestsList.innerHTML = '<p style="text-align: center; color: #6b7280;">No access requests yet.</p>';
+                return;
+            }
+            
+            requestsList.innerHTML = accessRequests.map((request, index) => `
+                <div class="request-item">
+                    <h3>Request from ${request.user}</h3>
+                    <p><strong>Time:</strong> ${request.startTime} to ${request.endTime}</p>
+                    <p><strong>Purpose:</strong> ${request.purpose}</p>
+                    <p><strong>Status:</strong> ${request.status}</p>
+                    ${request.status === 'pending' ? `
+                        <div class="request-actions">
+                            <button class="action-btn approve-btn" onclick="handleRequest(${index}, 'approved')">Approve</button>
+                            <button class="action-btn reject-btn" onclick="handleRequest(${index}, 'rejected')">Reject</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function handleRequest(index, action) {
+            const request = accessRequests[index];
+            request.status = action;
+            saveData();
+            loadRequests();
+            
+            const message = `Request ${action} successfully!`;
+            showNotification(message, 'success');
+            
+            // Send email notification to the user
+            const emailSubject = `Orange Pi Access Request ${action.charAt(0).toUpperCase() + action.slice(1)}`;
+            const emailBody = `Dear ${request.user},
+
+Your Orange Pi access request has been ${action}.
+
+Request Details:
+- Start Time: ${request.startTime}
+- End Time: ${request.endTime}
+- Purpose: ${request.purpose}
+- Status: ${action.toUpperCase()}
+
+${action === 'approved' ? 'You can now access the Orange Pi during the requested time period.' : 'Please contact the administrator if you need to discuss this decision.'}
+
+Best regards,
+Orange Pi Management System`;
+
+            // In a real implementation, you would send this to the user's email
+            console.log(`Notification sent to ${request.user}: Your request has been ${action}`);
+            sendEmail(`${request.user}@company.com`, emailSubject, emailBody);
+        }
+
+        // Handle access request form
+        document.getElementById('accessRequestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            const purpose = document.getElementById('purpose').value;
+            
+            const startDate = new Date(startTime);
+            const endDate = new Date(endTime);
+            
+            const request = {
+                user: currentUser,
+                startTime: startDate.toLocaleString(),
+                endTime: endDate.toLocaleString(),
+                purpose: purpose,
+                status: 'pending',
+                timestamp: new Date().toISOString()
+            };
+            
+            accessRequests.push(request);
+            saveData();
+            
+            // Clear form
+            this.reset();
+            
+            showNotification('Request sent successfully!', 'success');
+            
+            // Send email notification to admin using EmailJS
+            const emailParams = {
+                to_email: adminEmail,
+                to_name: 'Iheb',
+                from_name: currentUser,
+                subject: `New Orange Pi Access Request from ${currentUser}`,
+                message: `A new Orange Pi access request has been submitted.
+
+Request Details:
+- User: ${currentUser}
+- Start Date & Time: ${startDate.toLocaleString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })}
+- End Date & Time: ${endDate.toLocaleString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })}
+- Purpose/Description: ${purpose}
+- Request submitted: ${new Date().toLocaleString()}
+
+Please review and approve/reject this request through the Orange Pi Access Manager.`,
+                user_name: currentUser,
+                start_time: startDate.toLocaleString(),
+                end_time: endDate.toLocaleString(),
+                purpose: purpose,
+                request_date: new Date().toLocaleString()
+            };
+
+            sendEmail(emailParams);
+        });
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => document.body.removeChild(notification), 300);
+            }, 3000);
+        }
+
+        // Set minimum datetime to current time
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('startTime').min = now.toISOString().slice(0, 16);
+        document.getElementById('endTime').min = now.toISOString().slice(0, 16);
+        
+        // Update end time minimum when start time changes
+        document.getElementById('startTime').addEventListener('change', function() {
+            document.getElementById('endTime').min = this.value;
+        });
+    </script>
+</body>
+</html>
